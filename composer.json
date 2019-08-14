@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/Ltc_Komfortkasse",
+    "type": "magento-module",
+    "license": "CC-BY-ND-4.0",
+    "homepage": "",
+    "description": "Automatischer Zahlungsabgleich von Vorkasse-Zahlungen mit Komfortkasse",
+    "authors": [
+    {
+        "name": "Komfortkasse",
+        "email": "integration@komfortkasse.eu"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}

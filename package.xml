@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package>
+    <name>Ltc_Komfortkasse</name>
+    <version>1.2.2</version>
+    <stability>stable</stability>
+    <license uri="http://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</license>
+    <channel>community</channel>
+    <extends/>
+    <summary>Automatischer Zahlungsabgleich von Vorkasse-Zahlungen mit Komfortkasse</summary>
+    <description>Mit Komfortkasse werden Bank&#xFC;berweisungen vom Bankkonto abgerufen und automatisch den offenen Bestellungen zugeordnet. Die Zuordnung erfolgt vollautomatisch im Hintergrund und ist fehlertolerant, d.h. es k&#xF6;nnen auch Bestellungen zugeordnet werden wenn der Name nicht &#xFC;bereinstimmt, die Bestellnummer nicht angegeben wurde oder der Betrag abweicht.&#xD;
+&#xD;
+Zus&#xE4;tzlich k&#xF6;nnen automatische Zahlungserinnerungen versendet werden und R&#xFC;ckbuchungen direkt, ohne Einstieg ins Online-Banking, durchgef&#xFC;hrt werden. &#xD;
+&#xD;
+Es ist eine Anmeldung auf www.komfortkasse.eu erforderlich (kostenloses Paket verf&#xFC;gbar).&#xD;
+</description>
+    <notes>Support for invoice numbers</notes>
+    <authors><author><name>Komfortkasse</name><user>komfortkasse</user><email>integration@komfortkasse.eu</email></author></authors>
+    <date>2015-03-26</date>
+    <time>14:01:22</time>
+    <contents><target name="magecommunity"><dir name="Ltc"><dir name="Komfortkasse"><dir name="Helper"><file name="Data.php" hash="09cb83b76c6143cf1b5aef3281a89095"/><file name="Komfortkasse.php" hash="77473b549b6ef608aea7b89adbda66db"/><file name="Komfortkasse_Config.php" hash="bd7c6f9752f2ddea4675c29437466cd0"/><file name="Komfortkasse_Order.php" hash="359eca35bf70679b1bf8d482c3c2a2c3"/></dir><dir name="Model"><file name="Observer.php" hash="5b616b6d3651df44f8297c732dc478bb"/></dir><dir name="controllers"><file name="MainController.php" hash="fd31ba1ce6f5ec48ceecc17957e3ee02"/></dir><dir name="etc"><file name="config.xml" hash="05c9607443b0fe166a723999af77332a"/><file name="system.xml" hash="60684635fed231ff9acdf76ece84786d"/></dir></dir></dir><dir name="Mage"><dir name="Adminhtml"><dir name="Model"><dir name="System"><dir name="Config"><dir name="Source"><file name="KomfortkasseEncryptionOptions.php" hash="fea880dd3e60c13ede05be53511a6d93"/></dir></dir></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Ltc_Komfortkasse.xml" hash="433066ef75047d9468dcea87888283d2"/></dir></target></contents>
+    <compatible/>
+    <dependencies><required><php><min>5.0.0</min><max>6.0.0</max></php></required></dependencies>
+</package>
