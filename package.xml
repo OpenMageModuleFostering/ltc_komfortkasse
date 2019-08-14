@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Ltc_Komfortkasse</name>
-    <version>1.7.2</version>
+    <version>1.7.3</version>
     <stability>stable</stability>
     <license uri="http://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</license>
     <channel>community</channel>
@@ -13,11 +13,11 @@ Zus&#xE4;tzlich k&#xF6;nnen automatische Zahlungserinnerungen versendet werden u
 &#xD;
 Es ist eine Anmeldung auf www.komfortkasse.eu erforderlich (kostenloses Paket verf&#xFC;gbar).&#xD;
 </description>
-    <notes>performance improvements</notes>
+    <notes>Solved a problem for non-m2e shops</notes>
     <authors><author><name>Komfortkasse</name><user>komfortkasse</user><email>integration@komfortkasse.eu</email></author></authors>
-    <date>2016-11-10</date>
-    <time>13:41:45</time>
-    <contents><target name="magecommunity"><dir name="Ltc"><dir name="Komfortkasse"><dir name="Helper"><file name="Data.php" hash="42f1d168bb70725128e15daf305802ba"/><file name="Komfortkasse.php" hash="ab2894ec6276d3a7f1a639e15abdcb44"/><file name="Komfortkasse_Config.php" hash="fc3c24ab940dabaf5655de5b0d9ec14f"/><file name="Komfortkasse_Order.php" hash="c97ec577120a6f166986c7f712b5da25"/><file name="Komfortkasse_Order.php.esouq" hash="94eac48800d5f69047701b20e5631a19"/></dir><dir name="Model"><file name="Encryptionoptions.php" hash="1fbe2ffc43cc3c1489688d20f4c8af11"/><file name="Observer.php" hash="5b616b6d3651df44f8297c732dc478bb"/></dir><dir name="controllers"><file name="MainController.php" hash="b983fe60b2bbfa3aa1d57850cc6c045b"/></dir><dir name="etc"><file name="config.xml" hash="4964d847be82ded534fcbc1e12f214a3"/><file name="system.xml" hash="4477e69044c79edab2b70691b0236bd8"/></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Ltc_Komfortkasse.xml" hash="433066ef75047d9468dcea87888283d2"/></dir></target></contents>
+    <date>2016-12-05</date>
+    <time>08:18:33</time>
+    <contents><target name="magecommunity"><dir name="Ltc"><dir name="Komfortkasse"><dir name="Helper"><file name="Data.php" hash="42f1d168bb70725128e15daf305802ba"/><file name="Komfortkasse.php" hash="54393bd4105e1641765b6892ef66096f"/><file name="Komfortkasse_Config.php" hash="fc3c24ab940dabaf5655de5b0d9ec14f"/><file name="Komfortkasse_Order.php" hash="102b6e08880ee03ebbb06b8bd1f58eea"/></dir><dir name="Model"><file name="Encryptionoptions.php" hash="1fbe2ffc43cc3c1489688d20f4c8af11"/><file name="Observer.php" hash="5b616b6d3651df44f8297c732dc478bb"/></dir><dir name="controllers"><file name="MainController.php" hash="b983fe60b2bbfa3aa1d57850cc6c045b"/></dir><dir name="etc"><file name="config.xml" hash="8aeca5ae134645e9f939261c9135d129"/><file name="system.xml" hash="4477e69044c79edab2b70691b0236bd8"/></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Ltc_Komfortkasse.xml" hash="433066ef75047d9468dcea87888283d2"/></dir></target></contents>
     <compatible/>
     <dependencies><required><php><min>5.0.0</min><max>6.0.0</max></php></required></dependencies>
 </package>
