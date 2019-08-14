@@ -8,10 +8,12 @@
  * status: data type according to the shop system
  * delivery_ and billing_: _firstname, _lastname, _company, _street, _postcode, _city, _countrycode
  * products: an Array of item numbers
- * @version 1.2.3.3-Magento
+ * @version 1.3.0.5-Magento
  */
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
+$order_extension = false;
 if (file_exists("{$path}/Helper/Komfortkasse_Order_Extension.php") === true) {
+    $order_extension = true;
     include_once "{$path}/Helper/Komfortkasse_Order_Extension.php";
 }
 class Komfortkasse_Order
@@ -26,6 +28,8 @@ class Komfortkasse_Order
     public static function getOpenIDs()
     {
         $ret = array ();
+        
+        // PREPAYMENT
         
         $openOrders = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open));
         $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods));
@@ -51,12 +55,48 @@ class Komfortkasse_Order
             $method = $order->getPayment()->getMethodInstance()->getCode();
             if (in_array($method, $paymentMethods, true) === true) {
                 $orderId = $order->getIncrementId();
-                if (in_array($order_id, $ret) === false) {
+                if (in_array($orderId, $ret) === false) {
                     $ret [] = $orderId;
                 }
             }
         }
         
+        // INVOICE
+
+        $openOrders = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_invoice));
+        $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_invoice));
+        
+        $salesModel = Mage::getModel('sales/order');
+        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array (
+                'in' => $openOrders
+        ));
+        
+        foreach ($salesCollection as $order) {
+            $method = $order->getPayment()->getMethodInstance()->getCode();
+            if (in_array($method, $paymentMethods, true) === true) {
+                $orderId = $order->getIncrementId();
+                $ret [] = $orderId;
+            }
+        }
+                
+        // COD
+        
+        $openOrders = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_cod));
+        $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_cod));
+        
+        $salesModel = Mage::getModel('sales/order');
+        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array (
+                'in' => $openOrders
+        ));
+        
+        foreach ($salesCollection as $order) {
+            $method = $order->getPayment()->getMethodInstance()->getCode();
+            if (in_array($method, $paymentMethods, true) === true) {
+                $orderId = $order->getIncrementId();
+                $ret [] = $orderId;
+            }
+        }
+                
         return $ret;
     
     }
@@ -165,7 +205,7 @@ class Komfortkasse_Order
             }
         }
         
-        if (method_exists('Komfortkasse_Order_Extension', 'extendOrder') === true) {
+        if ($order_extension && method_exists('Komfortkasse_Order_Extension', 'extendOrder') === true) {
             $ret = Komfortkasse_Order_Extension::extendOrder($order, $ret);
         }
         
@@ -322,5 +362,41 @@ class Komfortkasse_Order
     {
         $object->save();
     
+    }
+    
+    public static function getInvoicePdfPrepare()
+    {
+    }
+    
+    public static function getInvoicePdf($invoiceNumber)
+    {
+        if ($invoiceNumber && $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceNumber)) {
+            $fileName = $invoiceNumber . '.pdf';
+        
+            $pdfGenerated = false;
+        
+            // try easy pdf (www.easypdfinvoice.com)
+            if (!$pdfGenerated) {
+                $pdfProModel = Mage::getModel('pdfpro/order_invoice');
+                if ($pdfProModel !== false) {
+                    $invoiceData = $pdfProModel->initInvoiceData($invoice);
+                    $result = Mage::helper('pdfpro')->initPdf(array($invoiceData));
+                    if ($result['success']) {
+                        $content = $result['content'];
+                        $pdfGenerated = true;
+                    }
+                }
+            }
+        
+            // try Magento Standard
+            if (!$pdfGenerated) {
+                $pdf = Mage::getModel('sales/order_pdf_invoice')->getPdf(array (
+                        $invoice
+                ));
+                $content = $pdf->render();
+            }
+
+            return $content;
+        }
     }
 }//end class

@@ -5,7 +5,7 @@ require_once "{$path}/Helper/Komfortkasse.php";
 /** 
  * Komfortkasse
  * Magento Plugin - Helper_Data Class
- * @version 1.2.3-Magento */
+ * @version 1.3.0.6-Magento */
 class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 {
 
@@ -106,7 +106,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
     
     
     public function readinvoicepdf() {
-        return Komfortkasse::getInvoiceNumber();
+        return Komfortkasse::readinvoicepdf();
     }
     
     

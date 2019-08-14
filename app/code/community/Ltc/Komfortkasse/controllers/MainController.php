@@ -120,40 +120,15 @@ class Ltc_Komfortkasse_MainController extends Mage_Core_Controller_Front_Action
  // end getHelper()
     public function readinvoicepdfAction()
     {
-        $invoiceNumber = self::getHelper()->readinvoicepdf();
-        if ($invoiceNumber && $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceNumber)) {
-            $fileName = $invoiceNumber . '.pdf';
-            
-            $pdfGenerated = false;
-            
-            // try easy pdf (www.easypdfinvoice.com)
-            if (!$pdfGenerated) {
-                $pdfProModel = Mage::getModel('pdfpro/order_invoice');
-                if ($pdfProModel !== false) {
-                    $invoiceData = $pdfProModel->initInvoiceData($invoice);
-                    $result = Mage::helper('pdfpro')->initPdf(array($invoiceData));
-                    if ($result['success']) {
-                        $content = $result['content'];
-                        $pdfGenerated = true;
-                    }
-                }
-            }
-            
-            // try Magento Standard
-            if (!$pdfGenerated) {
-                $pdf = Mage::getModel('sales/order_pdf_invoice')->getPdf(array (
-                        $invoice
-                ));
-                $content = $pdf->render();
-            }
-            
-            $contentType = 'application/pdf';
-            $contentLength = strlen($content);
-            
-            $this->getResponse()->setHttpResponseCode(200)->setHeader('Pragma', 'public', true)->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0', true)->setHeader('Content-type', $contentType, true)->setHeader('Content-Length', is_null($contentLength) ? strlen($content) : $contentLength, true)->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"', true)->setHeader('Last-Modified', date('r'), true);
-            $this->getResponse()->setBody($content);
-        }
-    
+        $content = self::getHelper()->readinvoicepdf();
+        if (!$content)
+            return;
+        
+        $contentType = 'application/pdf';
+        $contentLength = strlen($content);
+        
+        $this->getResponse()->setHttpResponseCode(200)->setHeader('Pragma', 'public', true)->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0', true)->setHeader('Content-type', $contentType, true)->setHeader('Content-Length', $contentLength, true)->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"', true)->setHeader('Last-Modified', date('r'), true);
+        $this->getResponse()->setBody($content);
     }
 }//end class
 

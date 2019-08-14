@@ -3,7 +3,7 @@
 <config>
   <modules>
     <Ltc_Komfortkasse>
-      <version>1.2.3.3</version>
+      <version>1.3.0.6</version>
     </Ltc_Komfortkasse>
   </modules>
   <global>
@@ -57,6 +57,8 @@
         <status_open>pending</status_open>
         <status_paid>processing</status_paid>
         <status_cancelled>canceled</status_cancelled>
+        <status_open_invoice>complete</status_open_invoice>
+        <status_open_cod>processing</status_open_cod>
       </komfortkasse>
     </payment>
   </default>

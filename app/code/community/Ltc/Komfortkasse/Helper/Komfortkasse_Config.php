@@ -3,28 +3,37 @@
 /** 
  * Komfortkasse
  * Config Class
- * @version 1.2.1.8-Magento */
+ * @version 1.3.0.1-Magento */
 class Komfortkasse_Config
 {
-    const activate_export  = 'payment/komfortkasse/activate_export';
-    const activate_update  = 'payment/komfortkasse/activate_update';
-    const payment_methods  = 'payment/komfortkasse/payment_methods';
-    const status_open      = 'payment/komfortkasse/status_open';
-    const status_paid      = 'payment/komfortkasse/status_paid';
+    const activate_export = 'payment/komfortkasse/activate_export';
+    const activate_update = 'payment/komfortkasse/activate_update';
+    const payment_methods = 'payment/komfortkasse/payment_methods';
+    const status_open = 'payment/komfortkasse/status_open';
+    const status_paid = 'payment/komfortkasse/status_paid';
     const status_cancelled = 'payment/komfortkasse/status_cancelled';
-    const encryption       = 'payment/komfortkasse/encryption';
-    const accesscode       = 'payment/komfortkasse/accesscode';
-    const apikey           = 'payment/komfortkasse/apikey';
-    const publickey        = 'payment/komfortkasse/publickey';
-    const privatekey       = 'payment/komfortkasse/privatekey';
+    const payment_methods_invoice = 'payment/komfortkasse/payment_methods_invoice';
+    const status_open_invoice = 'payment/komfortkasse/status_open_invoice';
+    const status_paid_invoice = 'payment/komfortkasse/status_paid_invoice';
+    const status_cancelled_invoice = 'payment/komfortkasse/status_cancelled_invoice';
+    const payment_methods_cod = 'payment/komfortkasse/payment_methods_cod';
+    const status_open_cod = 'payment/komfortkasse/status_open_cod';
+    const status_paid_cod = 'payment/komfortkasse/status_paid_cod';
+    const status_cancelled_cod = 'payment/komfortkasse/status_cancelled_cod';
+    const encryption = 'payment/komfortkasse/encryption';
+    const accesscode = 'payment/komfortkasse/accesscode';
+    const apikey = 'payment/komfortkasse/apikey';
+    const publickey = 'payment/komfortkasse/publickey';
+    const privatekey = 'payment/komfortkasse/privatekey';
 
 
     /**
-     * Set Config. 
-     * 
+     * Set Config.
+     *
+     *
      * @param string $constantKey Constant Key
-     * @param string $value       Value
-     * 
+     * @param string $value Value
+     *       
      * @return void
      */
     public static function setConfig($constantKey, $value)
@@ -32,50 +41,57 @@ class Komfortkasse_Config
         Mage::getConfig()->saveConfig($constantKey, $value);
         Mage::getConfig()->reinit();
         Mage::app()->reinitStores();
+    
+    }
 
-    }//end setConfig()
-
+ // end setConfig()
+    
 
     /**
-     * Get Config. 
-     * 
+     * Get Config.
+     *
+     *
      * @param string $constantKey Constant Key
-     * 
+     *       
      * @return mixed
      */
     public static function getConfig($constantKey)
     {
         $value = Mage::getStoreConfig($constantKey);
-
+        
         return $value;
+    
+    }
 
-    }//end getConfig()
-
+ // end getConfig()
+    
 
     /**
-     * Get Request Parameter. 
-     * 
+     * Get Request Parameter.
+     *
+     *
      * @param string $key Key
-     * 
+     *       
      * @return string
      */
     public static function getRequestParameter($key)
     {
         return urldecode(Mage::app()->getRequest()->getParam($key));
+    
+    }
 
-    }//end getRequestParameter()
-
+ // end getRequestParameter()
+    
 
     /**
-     * Get Magento Version. 
-     * 
+     * Get Magento Version.
+     *
+     *
      * @return string
      */
     public static function getVersion()
     {
         return Mage::getVersion();
-
-    }//end getVersion()
-
-
+    
+    } // end getVersion()
 }//end class
