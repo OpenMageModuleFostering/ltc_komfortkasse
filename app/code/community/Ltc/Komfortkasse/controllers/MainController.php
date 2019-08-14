@@ -3,106 +3,157 @@
  * Komfortkasse
  * Magento Plugin - MainController
  * 
- * @version 1.2.1.9-Magento */
+ * @version 1.2.3.2-Magento */
 class Ltc_Komfortkasse_MainController extends Mage_Core_Controller_Front_Action
 {
 
 
     /**
      * Init.
-     * 
+     *
      * @return void
      */
     public function initAction()
     {
         self::getHelper()->init();
+    
+    }
 
-    }//end initAction()
-
+ // end initAction()
+    
 
     /**
      * Test.
-     * 
+     *
      * @return void
      */
     public function testAction()
     {
         self::getHelper()->test();
+    
+    }
 
-    }//end testAction()
-
+ // end testAction()
+    
 
     /**
      * Read orders.
-     * 
+     *
      * @return void
      */
     public function readordersAction()
     {
         self::getHelper()->readorders();
+    
+    }
 
-    }//end readordersAction()
-
+ // end readordersAction()
+    
 
     /**
      * Read refunds.
-     * 
+     *
      * @return void
      */
     public function readrefundsAction()
     {
         self::getHelper()->readrefunds();
+    
+    }
 
-    }//end readrefundsAction()
-
+ // end readrefundsAction()
+    
 
     /**
      * Update orders.
-     * 
+     *
      * @return void
      */
     public function updateordersAction()
     {
         self::getHelper()->updateorders();
+    
+    }
 
-    }//end updateordersAction()
-
+ // end updateordersAction()
+    
 
     /**
      * Update refunds.
-     * 
+     *
      * @return void
      */
     public function updaterefundsAction()
     {
         self::getHelper()->updaterefunds();
+    
+    }
 
-    }//end updaterefundsAction()
-
+ // end updaterefundsAction()
+    
 
     /**
      * Info.
-     * 
+     *
      * @return void
      */
     public function infoAction()
     {
         self::getHelper()->info();
+    
+    }
 
-    }//end infoAction()
-
+ // end infoAction()
+    
 
     /**
      * Get Helper.
-     * 
+     *
      * @return void
      */
     protected function getHelper()
     {
         return Mage::helper('Ltc_Komfortkasse');
+    
+    }
 
-    }//end getHelper()
-
-
+ // end getHelper()
+    public function readinvoicepdfAction()
+    {
+        $invoiceNumber = self::getHelper()->readinvoicepdf();
+        if ($invoiceNumber && $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceNumber)) {
+            $fileName = $invoiceNumber . '.pdf';
+            
+            $pdfGenerated = false;
+            
+            // try easy pdf (www.easypdfinvoice.com)
+            if (!$pdfGenerated) {
+                $pdfProModel = Mage::getModel('pdfpro/order_invoice');
+                if ($pdfProModel !== false) {
+                    $invoiceData = $pdfProModel->initInvoiceData($invoice);
+                    $result = Mage::helper('pdfpro')->initPdf(array($invoiceData));
+                    if ($result['success']) {
+                        $content = $result['content'];
+                        $pdfGenerated = true;
+                    }
+                }
+            }
+            
+            // try Magento Standard
+            if (!$pdfGenerated) {
+                $pdf = Mage::getModel('sales/order_pdf_invoice')->getPdf(array (
+                        $invoice
+                ));
+                $content = $pdf->render();
+            }
+            
+            $contentType = 'application/pdf';
+            $contentLength = strlen($content);
+            
+            $this->getResponse()->setHttpResponseCode(200)->setHeader('Pragma', 'public', true)->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0', true)->setHeader('Content-type', $contentType, true)->setHeader('Content-Length', is_null($contentLength) ? strlen($content) : $contentLength, true)->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"', true)->setHeader('Last-Modified', date('r'), true);
+            $this->getResponse()->setBody($content);
+        }
+    
+    }
 }//end class
 

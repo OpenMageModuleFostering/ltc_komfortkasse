@@ -8,97 +8,100 @@
  * status: data type according to the shop system
  * delivery_ and billing_: _firstname, _lastname, _company, _street, _postcode, _city, _countrycode
  * products: an Array of item numbers
- * @version 1.2.2-Magento
+ * @version 1.2.3.3-Magento
  */
-
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
 if (file_exists("{$path}/Helper/Komfortkasse_Order_Extension.php") === true) {
     include_once "{$path}/Helper/Komfortkasse_Order_Extension.php";
 }
-
 class Komfortkasse_Order
 {
 
+
     /**
      * Get open order IDs.
-     * 
+     *
      * @return string all order IDs that are "open" and relevant for transfer to kk
      */
     public static function getOpenIDs()
     {
-        $ret = array();
-
-        $openOrders     = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open));
+        $ret = array ();
+        
+        $openOrders = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open));
         $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods));
-
-        $salesModel      = Mage::getModel('sales/order');
-        $salesCollection = $salesModel->getCollection()->addAttributeToFilter(
-            'status', array('in' => $openOrders)
-        );
-
+        
+        $salesModel = Mage::getModel('sales/order');
+        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array (
+                'in' => $openOrders 
+        ));
+        
         foreach ($salesCollection as $order) {
             $method = $order->getPayment()->getMethodInstance()->getCode();
             if (in_array($method, $paymentMethods, true) === true) {
                 $orderId = $order->getIncrementId();
-                $ret[]   = $orderId;
+                $ret [] = $orderId;
             }
         }
-
+        
         // Add all orders with unpaid invoices (in case the invoice is created before shipping).
-        $invoiceModel      = Mage::getModel('sales/order_invoice');
+        $invoiceModel = Mage::getModel('sales/order_invoice');
         $invoiceCollection = $invoiceModel->getCollection()->addAttributeToFilter('state', Mage_Sales_Model_Order_Invoice::STATE_OPEN);
         foreach ($invoiceCollection as $invoice) {
-            $order  = $invoice->getOrder();
+            $order = $invoice->getOrder();
             $method = $order->getPayment()->getMethodInstance()->getCode();
             if (in_array($method, $paymentMethods, true) === true) {
                 $orderId = $order->getIncrementId();
                 if (in_array($order_id, $ret) === false) {
-                    $ret[] = $orderId;
+                    $ret [] = $orderId;
                 }
             }
         }
-
+        
         return $ret;
-
-    }//end getOpenIDs()
-
+    
+    }
+    
+    // end getOpenIDs()
+    
 
     /**
      * Get refund IDS.
-     * 
+     *
      * @return string all refund IDs that are "open" and relevant for transfer to kk
      */
     public static function getRefundIDs()
     {
-        $ret = array();
-
+        $ret = array ();
+        
         $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods));
-
-        $cmModel      = Mage::getModel("sales/order_creditmemo");
+        
+        $cmModel = Mage::getModel("sales/order_creditmemo");
         $cmCollection = $cmModel->getCollection();
-
+        
         foreach ($cmCollection as $creditMemo) {
             if ($creditMemo->getTransactionId() == null) {
-                $order  = $creditMemo->getOrder();
+                $order = $creditMemo->getOrder();
                 $method = $order->getPayment()->getMethodInstance()->getCode();
                 if (in_array($method, $paymentMethods, true) === true) {
-                    $cmId  = $creditMemo->getIncrementId();
-                    $ret[] = $cmId;
+                    $cmId = $creditMemo->getIncrementId();
+                    $ret [] = $cmId;
                 }
             }
         }
-
+        
         return $ret;
-
-    }//end getRefundIDs()
-
+    
+    }
+    
+    // end getRefundIDs()
+    
 
     /**
      * Get order.
-     * 
+     *
      * @param string $number order number
-     * 
-     * @return array order 
+     *       
+     * @return array order
      */
     public static function getOrder($number)
     {
@@ -106,115 +109,132 @@ class Komfortkasse_Order
         if (empty($number) === true || empty($order) === true || $number != $order->getIncrementId()) {
             return null;
         }
-
+        
         $conf_general = Mage::getStoreConfig('general', $order->getStoreId());
-
-        $ret                    = array();
-        $ret['number']          = $order->getIncrementId();
-        $ret['status']          = $order->getStatus();
-        $ret['date']            = date('d.m.Y', strtotime($order->getCreatedAtStoreDate()->get(Zend_Date::DATE_MEDIUM)));
-        $ret['email']           = $order->getCustomerEmail();
-        $ret['customer_number'] = $order->getCustomerId();
-        $ret['payment_method']  = $order->getPayment()->getMethodInstance()->getCode();
-        $ret['amount']          = $order->getGrandTotal();
-        $ret['currency_code']   = $order->getOrderCurrencyCode();
-        $ret['exchange_rate']   = $order->getBaseToOrderRate();
-        $ret['language_code']   = substr($conf_general['locale']['code'], 0, 2).'-'.$order->getBillingAddress()->getCountryId();
+        
+        $ret = array ();
+        $ret ['number'] = $order->getIncrementId();
+        $ret ['status'] = $order->getStatus();
+        $ret ['date'] = date('d.m.Y', strtotime($order->getCreatedAtStoreDate()->get(Zend_Date::DATE_MEDIUM)));
+        $ret ['email'] = $order->getCustomerEmail();
+        $ret ['customer_number'] = $order->getCustomerId();
+        $ret ['payment_method'] = $order->getPayment()->getMethodInstance()->getCode();
+        $ret ['amount'] = $order->getGrandTotal();
+        $ret ['currency_code'] = $order->getOrderCurrencyCode();
+        $ret ['exchange_rate'] = $order->getBaseToOrderRate();
         
         // Rechnungsnummer
         $invoiceColl = $order->getInvoiceCollection();
         if ($invoiceColl->getSize() > 0) {
             foreach ($order->getInvoiceCollection() as $invoice) {
-                $ret['invoice_number'][] = $invoice->getIncrementId();
+                $ret ['invoice_number'] [] = $invoice->getIncrementId();
             }
         }
-
-        $ret['delivery_firstname']   = utf8_encode($order->getShippingAddress()->getFirstname());
-        $ret['delivery_lastname']    = utf8_encode($order->getShippingAddress()->getLastname());
-        $ret['delivery_company']     = utf8_encode($order->getShippingAddress()->getCompany());
-        $ret['delivery_street']      = utf8_encode($order->getShippingAddress()->getStreetFull());
-        $ret['delivery_postcode']    = utf8_encode($order->getShippingAddress()->getPostcode());
-        $ret['delivery_city']        = utf8_encode($order->getShippingAddress()->getCity());
-        $ret['delivery_countrycode'] = utf8_encode($order->getShippingAddress()->getCountryId());
-
-        $ret['billing_firstname']   = utf8_encode($order->getBillingAddress()->getFirstname());
-        $ret['billing_lastname']    = utf8_encode($order->getBillingAddress()->getLastname());
-        $ret['billing_company']     = utf8_encode($order->getBillingAddress()->getCompany());
-        $ret['billing_street']      = utf8_encode($order->getBillingAddress()->getStreetFull());
-        $ret['billing_postcode']    = utf8_encode($order->getBillingAddress()->getPostcode());
-        $ret['billing_city']        = utf8_encode($order->getBillingAddress()->getCity());
-        $ret['billing_countrycode'] = utf8_encode($order->getBillingAddress()->getCountryId());
-
+        
+        $shippingAddress = $order->getShippingAddress();
+        if ($shippingAddress) {
+            $ret ['delivery_firstname'] = utf8_encode($shippingAddress->getFirstname());
+            $ret ['delivery_lastname'] = utf8_encode($shippingAddress->getLastname());
+            $ret ['delivery_company'] = utf8_encode($shippingAddress->getCompany());
+            $ret ['delivery_street'] = utf8_encode($shippingAddress->getStreetFull());
+            $ret ['delivery_postcode'] = utf8_encode($shippingAddress->getPostcode());
+            $ret ['delivery_city'] = utf8_encode($shippingAddress->getCity());
+            $ret ['delivery_countrycode'] = utf8_encode($shippingAddress->getCountryId());
+        }
+        
+        $billingAddress = $order->getBillingAddress();
+        if ($billingAddress) {
+            $ret ['language_code'] = substr($conf_general ['locale'] ['code'], 0, 2) . '-' . $billingAddress->getCountryId();
+            $ret ['billing_firstname'] = utf8_encode($billingAddress->getFirstname());
+            $ret ['billing_lastname'] = utf8_encode($billingAddress->getLastname());
+            $ret ['billing_company'] = utf8_encode($billingAddress->getCompany());
+            $ret ['billing_street'] = utf8_encode($billingAddress->getStreetFull());
+            $ret ['billing_postcode'] = utf8_encode($billingAddress->getPostcode());
+            $ret ['billing_city'] = utf8_encode($billingAddress->getCity());
+            $ret ['billing_countrycode'] = utf8_encode($billingAddress->getCountryId());
+        } else {
+            $ret ['language_code'] = substr($conf_general ['locale'] ['code'], 0, 2);
+        }
+        
         foreach ($order->getAllItems() as $itemId => $item) {
             $sku = $item->getSku();
             if ($sku) {
-                $ret['products'][] = $sku;
+                $ret ['products'] [] = $sku;
             } else {
-                $ret['products'][] = $item->getName();
+                $ret ['products'] [] = $item->getName();
             }
         }
-
+        
         if (method_exists('Komfortkasse_Order_Extension', 'extendOrder') === true) {
             $ret = Komfortkasse_Order_Extension::extendOrder($order, $ret);
         }
-
+        
         return $ret;
-
-    }//end getOrder()
-
+    
+    }
+    
+    // end getOrder()
+    
 
     /**
      * Get refund.
-     * 
+     *
      * @param string $number refund number
-     * 
+     *       
      * @return array refund
      */
     public static function getRefund($number)
     {
         $resource = Mage::getSingleton('core/resource');
-        $id       = $resource->getConnection('core_read')->fetchOne('SELECT `entity_id` FROM `'.$resource->getTableName('sales/creditmemo')."` WHERE `increment_id` = '".$number."'");
-
+        $id = $resource->getConnection('core_read')->fetchOne('SELECT `entity_id` FROM `' . $resource->getTableName('sales/creditmemo') . "` WHERE `increment_id` = '" . $number . "'");
+        
         $creditMemo = Mage::getModel('sales/order_creditmemo')->load($id);
         if (empty($number) === true || empty($creditMemo) === true || $number != $creditMemo->getIncrementId()) {
             return null;
         }
-
-        $ret           = array();
-        $ret['number'] = $creditMemo->getOrder()->getIncrementId();
+        
+        $ret = array ();
+        $ret ['number'] = $creditMemo->getOrder()->getIncrementId();
         // Number of the Creditmemo.
-        $ret['customer_number'] = $creditMemo->getIncrementId();
-        $ret['date']            = date('d.m.Y', strtotime($creditMemo->getCreatedAt()));
-        $ret['amount']          = $creditMemo->getGrandTotal();
-
+        $ret ['customer_number'] = $creditMemo->getIncrementId();
+        $ret ['date'] = date('d.m.Y', strtotime($creditMemo->getCreatedAt()));
+        $ret ['amount'] = $creditMemo->getGrandTotal();
+        
         return $ret;
-
-    }//end getRefund()
-
+    
+    }
+    
+    // end getRefund()
+    
 
     /**
      * Update order.
-     * 
-     * @param array  $order      order
-     * @param string $status     status
+     *
+     * @param array $order order
+     * @param string $status status
      * @param string $callbackid callback ID
-     * 
+     *       
      * @return void
      */
     public static function updateOrder($order, $status, $callbackid)
     {
         // Hint: PAID and CANCELLED are supported as of now.
+        $order = Mage::getModel('sales/order')->loadByIncrementId($order ['number']);
         
-        $order = Mage::getModel('sales/order')->loadByIncrementId($order['number']);
-        
-        Mage::dispatchEvent('komfortkasse_change_order_status_before', array('order'=>$order, 'status'=>$status, 'callbackid'=>$callbackid));        
+        Mage::dispatchEvent('komfortkasse_change_order_status_before', array (
+                'order' => $order,
+                'status' => $status,
+                'callbackid' => $callbackid 
+        ));
         
         $stateCollection = Mage::getModel('sales/order_status')->getCollection()->joinStates();
-        $stateCollection->addFieldToFilter('main_table.status',array('like'=>$status));
+        $stateCollection->addFieldToFilter('main_table.status', array (
+                'like' => $status 
+        ));
         $state = $stateCollection->getFirstItem()->getState();
         
         if ($state == 'processing' || $state == 'closed' || $state == 'complete') {
-
+            
             // If there is already an invoice, update the invoice, not the order.
             $invoiceColl = $order->getInvoiceCollection();
             if ($invoiceColl->getSize() > 0) {
@@ -226,76 +246,81 @@ class Komfortkasse_Order
             } else {
                 $payment = $order->getPayment();
                 $payment->capture(null);
-            
+                
                 if ($callbackid) {
                     $payment->setTransactionId($callbackid);
                     $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE);
                 }
             }
             
-            $history = $order->addStatusHistoryComment(''.$callbackid, $status);
+            $history = $order->addStatusHistoryComment('' . $callbackid, $status);
             $order->save();
-            
         } else if ($state == 'canceled') {
-
+            
             if ($callbackid) {
-                $history = $order->addStatusHistoryComment(''.$callbackid, $status);
+                $history = $order->addStatusHistoryComment('' . $callbackid, $status);
             }
             if ($order->canCancel()) {
                 $order->cancel();
             }
             $order->setStatus($status);
             $order->save();
-
         } else {
             
-            $history = $order->addStatusHistoryComment(''.$callbackid, $status);
+            $history = $order->addStatusHistoryComment('' . $callbackid, $status);
             $order->save();
-            
         }
         
-        Mage::dispatchEvent('komfortkasse_change_order_status_after', array('order'=>$order, 'status'=>$status, 'callbackid'=>$callbackid));        
-        
-    }//end updateOrder()
-
+        Mage::dispatchEvent('komfortkasse_change_order_status_after', array (
+                'order' => $order,
+                'status' => $status,
+                'callbackid' => $callbackid 
+        ));
+    
+    }
+    
+    // end updateOrder()
+    
 
     /**
      * Update order.
-     * 
+     *
      * @param string $refundIncrementId Increment ID of refund
-     * @param string $status            status
-     * @param string $callbackid        callback ID
-     * 
+     * @param string $status status
+     * @param string $callbackid callback ID
+     *       
      * @return void
      */
     public static function updateRefund($refundIncrementId, $status, $callbackid)
     {
         $resource = Mage::getSingleton('core/resource');
-        $id       = $resource->getConnection('core_read')->fetchOne('SELECT `entity_id` FROM `'.$resource->getTableName('sales/creditmemo')."` WHERE `increment_id` = '".$refundIncrementId."'");
-
+        $id = $resource->getConnection('core_read')->fetchOne('SELECT `entity_id` FROM `' . $resource->getTableName('sales/creditmemo') . "` WHERE `increment_id` = '" . $refundIncrementId . "'");
+        
         $creditMemo = Mage::getModel('sales/order_creditmemo')->load($id);
-
+        
         if ($creditMemo->getTransactionId() == null) {
             $creditMemo->setTransactionId($callbackid);
         }
-
-        $history = $creditMemo->addComment($status.' ['.$callbackid.']', false, false);
-
+        
+        $history = $creditMemo->addComment($status . ' [' . $callbackid . ']', false, false);
+        
         $creditMemo->save();
-
-    }//end updateRefund()
-
+    
+    }
+    
+    // end updateRefund()
+    
 
     /**
      * Call an object's save method
-     * 
+     *
      * @param unknown $object
-     * 
+     *
      * @return void
      */
-    private static function mysave($object) {
+    private static function mysave($object)
+    {
         $object->save();
+    
     }
-
-
 }//end class
