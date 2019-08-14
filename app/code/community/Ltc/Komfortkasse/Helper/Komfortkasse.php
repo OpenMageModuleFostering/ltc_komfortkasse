@@ -8,7 +8,7 @@ require_once 'Komfortkasse_Order.php';
  */
 class Komfortkasse
 {
-    const PLUGIN_VER = '1.3.0.6';
+    const PLUGIN_VER = '1.4.0.2';
     const MAXLEN_SSL = 117;
     const LEN_MCRYPT = 16;
 
@@ -320,12 +320,18 @@ class Komfortkasse
                     continue;
                 }
                 
-                $newstatus = Komfortkasse::getNewStatus($status, self::getOrderType($order ['payment_method']));
+                $newstatus = Komfortkasse::getNewStatus($status, $order);
                 if (empty($newstatus) === true) {
                     continue;
                 }
                 
-                // Look if order is still open.
+                // only update if order status update is necessary (dont update if order has been updated manually)
+                if ($order['status'] == $newstatus) {
+                    $o = $o . Komfortkasse::kk_csv($id);
+                    continue;
+                }
+                
+                // dont update if order is no longer relevant (will be marked as DISAPPEARED later on)
                 if (in_array($order ['number'], $openids) === false) {
                     continue;
                 }
@@ -427,15 +433,17 @@ class Komfortkasse
      *       
      * @return mixed
      */
-    protected static function getNewStatus($status, $orderType)
+    protected static function getNewStatus($status, $order)
     {
+        $orderType = self::getOrderType($order ['payment_method']);
+        
         switch ($orderType) {
             case 'PREPAYMENT' :
         switch ($status) {
             case 'PAID' :
-                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_paid);
+                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_paid, $order);
             case 'CANCELLED' :
-                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_cancelled);
+                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_cancelled, $order);
         }
         
         return null;

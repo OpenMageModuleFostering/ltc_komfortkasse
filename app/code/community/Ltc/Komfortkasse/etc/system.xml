@@ -85,8 +85,6 @@
               <comment>Order state that should be set when a prepayment order has been cancelled.
               </comment>
             </status_cancelled>
-            
-            
             <payment_methods_invoice translate="label">
               <label>Invoice: Payment Methods</label>
               <frontend_type>multiselect</frontend_type>
@@ -186,10 +184,6 @@
               <comment>Order state that should be set when a COD order was not paid.
               </comment>
             </status_cancelled_cod>
-            
-            
-            
-            
             <encryption translate="label">
               <label>Encryption</label>
               <frontend_type>select</frontend_type>
