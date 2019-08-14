@@ -8,7 +8,7 @@ require_once 'Komfortkasse_Order.php';
  */
 class Komfortkasse
 {
-    const PLUGIN_VER = '1.6.0';
+    const PLUGIN_VER = '1.6.2';
     const MAXLEN_SSL = 117;
     const LEN_MCRYPT = 16;
 
@@ -563,7 +563,7 @@ class Komfortkasse
      *
      * @return Ambigous <boolean, string>|string
      */
-    protected static function kkdecrypt($s, $encryption = null, $keystring = null)
+    public static function kkdecrypt($s, $encryption = null, $keystring = null)
     {
         if (!$encryption) {
             $encryption = Komfortkasse_Config::getConfig(Komfortkasse_Config::encryption);

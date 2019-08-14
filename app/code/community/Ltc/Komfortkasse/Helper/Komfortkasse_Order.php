@@ -8,7 +8,7 @@
  * status: data type according to the shop system
  * delivery_ and billing_: _firstname, _lastname, _company, _street, _postcode, _city, _countrycode
  * products: an Array of item numbers
- * @version 1.6.1-Magento1
+ * @version 1.6.2-Magento1
  */
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
 global $komfortkasse_order_extension;
@@ -56,14 +56,14 @@ class Komfortkasse_Order
         $shopIds = Komfortkasse_Config::getRequestParameter('s');
         if ($shopIds)
             $shopIds = Komfortkasse::kkdecrypt($shopIds);
-        $stores = $shopIds ? explode(',', $shopIds) : array ();
+        $store_codes = $shopIds ? explode(',', $shopIds) : array ();
 
         foreach (Mage::app()->getWebsites() as $website) {
             foreach ($website->getGroups() as $group) {
                 $stores = $group->getStores();
                 foreach ($stores as $store) {
                     $store_code = $store->getCode();
-                    if (is_empty($stores) || in_array($store_code, $stores)) {
+                    if (empty($store_codes) || in_array($store_code, $store_codes)) {
 
                         $store_id = $store->getId();
                         $store_id_order = array ();
