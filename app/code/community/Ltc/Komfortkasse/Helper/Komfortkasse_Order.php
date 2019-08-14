@@ -8,16 +8,18 @@
  * status: data type according to the shop system
  * delivery_ and billing_: _firstname, _lastname, _company, _street, _postcode, _city, _countrycode
  * products: an Array of item numbers
- * @version 1.4.4.7-Magento1
+ * @version 1.4.4.17-Magento1
  */
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
-$order_extension = false;
+global $komfortkasse_order_extension;
+$komfortkasse_order_extension = false;
 if (file_exists("{$path}/Helper/Komfortkasse_Order_Extension.php") === true) {
-    $order_extension = true;
+    $komfortkasse_order_extension = true;
     include_once "{$path}/Helper/Komfortkasse_Order_Extension.php";
 }
 class Komfortkasse_Order
 {
+
 
     private static function createInClause($arr)
     {
@@ -31,6 +33,7 @@ class Komfortkasse_Order
         return '(\'' . implode('\', \'', $tmp) . '\')';
 
     }
+
 
     /**
      * Get open order IDs.
@@ -46,7 +49,9 @@ class Komfortkasse_Order
         $tableOrder = $resource->getTableName('sales/order');
         $tablePayment = $resource->getTableName('sales/order_payment');
 
-        $minDate = date('Y-m-d', time()-31536000); // 1 Jahr
+        $minDate = date('Y-m-d', time() - 31536000); // 1 Jahr
+
+        $m2e = Mage::getModel('M2ePro/Order');
 
         foreach (Mage::app()->getWebsites() as $website) {
             foreach ($website->getGroups() as $group) {
@@ -58,8 +63,15 @@ class Komfortkasse_Order
 
                     if (Komfortkasse_Config::getConfig(Komfortkasse_Config::activate_export, $store_id_order)) {
 
-                        $query = 'SELECT o.increment_id FROM ' . $tableOrder . ' o join ' . $tablePayment . ' p on p.parent_id = o.entity_id where o.store_id=' . $store_id . ' and created_at > ' . $minDate . ' and (';
+                        $m2e_active = $m2e && Komfortkasse_Config::getConfig('payment/m2epropayment/active', $store_id_order);
+
+                        $query = 'SELECT o.increment_id FROM ' . $tableOrder . ' o join ' . $tablePayment . ' p on p.parent_id = o.entity_id';
+                        if ($m2e_active)
+                            $query .= ' left join ' . $resource->getTableName('M2ePro/Order') . ' m on m.magento_order_id=o.entity_id left join ' . $resource->getTableName('M2ePro/Ebay_Order') . ' e on e.order_id=m.id ';
+
+                        $query .= ' where o.store_id=' . $store_id . ' and created_at > ' . $minDate . ' and (';
                         $first = true;
+                        $m2e_used = false;
 
                         // PREPAYMENT
                         $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open, $store_id_order);
@@ -67,7 +79,14 @@ class Komfortkasse_Order
                         if ($openOrders && $paymentMethods) {
                             if (!$first)
                                 $query .= ' or ';
-                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods);
+
+                            if ($m2e_active && !$m2e_used && strstr($paymentMethods, 'm2epropayment') !== false) {
+                                $query .= ' and (p.method <> \'m2epropayment\' or e.payment_details like \'%"method":"%berweisung"%\') ';
+                                $m2e_used = true;
+                            }
+
+                            $query .= ')';
                             $first = false;
                         }
 
@@ -77,7 +96,14 @@ class Komfortkasse_Order
                         if ($openOrders && $paymentMethods) {
                             if (!$first)
                                 $query .= ' or ';
-                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods);
+
+                            if ($m2e_active && !$m2e_used && strstr($paymentMethods, 'm2epropayment') !== false) {
+                                $query .= ' and (p.method <> \'m2epropayment\' or e.payment_details like \'%"method":"Nachnahme"%\') ';
+                                $m2e_used = true;
+                            }
+
+                            $query .= ')';
                             $first = false;
                         }
 
@@ -87,7 +113,14 @@ class Komfortkasse_Order
                         if ($openOrders && $paymentMethods) {
                             if (!$first)
                                 $query .= ' or ';
-                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods);
+
+                            if ($m2e_active && !$m2e_used && strstr($paymentMethods, 'm2epropayment') !== false) {
+                                $query .= ' and (p.method <> \'m2epropayment\' or e.payment_details like \'%"method":"Rechnung"%\') ';
+                                $m2e_used = true;
+                            }
+
+                            $query .= ')';
                             $first = false;
                         }
 
@@ -95,7 +128,7 @@ class Komfortkasse_Order
 
                         $results = $readConnection->fetchAll($query);
                         foreach ($results as $result) {
-                            $ret[] = $result['increment_id'];
+                            $ret [] = $result ['increment_id'];
                         }
                     }
                 }
@@ -180,6 +213,8 @@ class Komfortkasse_Order
         $conf_general = Mage::getStoreConfig('general', $order->getStoreId());
 
         $ret = array ();
+        $ret ['store_id'] = $order->getStoreId();
+        $ret ['invoice_date'] = null;
         $ret ['number'] = $order->getIncrementId();
         $ret ['status'] = $order->getStatus();
         $ret ['date'] = date('d.m.Y', strtotime($order->getCreatedAtStoreDate()->get(Zend_Date::DATE_MEDIUM)));
@@ -193,17 +228,76 @@ class Komfortkasse_Order
         $ret ['currency_code'] = $order->getOrderCurrencyCode();
         $ret ['exchange_rate'] = $order->getBaseToOrderRate();
 
-        // Rechnungsnummer und -datum
+        // Rechnungsnummer und -datum, evtl. Rechnungsbetrag
+        $useInvoiceAmount = Komfortkasse::getOrderType($ret) == 'INVOICE' && Komfortkasse_Config::getConfig(Komfortkasse_Config::use_invoice_total, $ret);
+        $considerCreditnotes = $useInvoiceAmount && Komfortkasse_Config::getConfig(Komfortkasse_Config::consider_creditnotes, $ret);
+        $creditnotesAsInvoices = Komfortkasse_Config::getConfig(Komfortkasse_Config::creditnotes_as_invoices, $ret);
+        $lastOnly = Komfortkasse_Config::getConfig(Komfortkasse_Config::last_receipt_only, $ret);
         $invoiceColl = $order->getInvoiceCollection();
-        if ($invoiceColl->getSize() > 0) {
-            foreach ($order->getInvoiceCollection() as $invoice) {
-                $ret ['invoice_number'] [] = $invoice->getIncrementId();
-                $invoiceDate = date('d.m.Y', strtotime($invoice->getCreatedAt()));
-                if ($ret ['invoice_date'] == null || strtotime($ret ['invoice_date']) < strtotime($invoiceDate)) {
-                    $ret ['invoice_date'] = $invoiceDate;
+        $creditColl = $order->getCreditmemosCollection();
+        $invAmount = 0.0;
+
+        if ($lastOnly) {
+            // nur der letzte Beleg wird übertragen
+            $newestInvoice = null;
+            foreach ($invoiceColl as $invoice) {
+                if (!$invoice->isCanceled()) {
+                    if ($newestInvoice == null || $newestInvoice->getCreatedAt() < $invoice->getCreatedAt()) {
+                        $newestInvoice = $invoice;
+                    }
+                }
+            }
+            $newestCredit = null;
+            if ($creditnotesAsInvoices) {
+                foreach ($creditColl as $credit) {
+                    if ($newestCredit == null || $newestCredit->getCreatedAt() < $credit->getCreatedAt()) {
+                        $newestCredit = $credit;
+                    }
+                }
+            }
+            if ($newestCredit != null || $newestInvoice != null) {
+                if ($newestCredit == null || ($newestInvoice != null && $newestInvoice->getCreatedAt() > $newestCredit->getCreatedAt())) {
+                    $ret ['invoice_number'] [] = $newestInvoice->getIncrementId();
+                    $ret ['invoice_date'] = date('d.m.Y', strtotime($newestInvoice->getCreatedAt()));
+                    $invAmount = $newestInvoice->getGrandTotal();
+                } else if ($newestCredit != null) {
+                    $ret ['invoice_number'] [] = $newestCredit->getIncrementId();
+                    $ret ['invoice_date'] = date('d.m.Y', strtotime($newestCredit->getCreatedAt()));
+                    $invAmount = $newestCredit->getGrandTotal();
+                }
+            }
+        } else {
+            // alle Belege werden übertragen
+            if ($invoiceColl->getSize() > 0 || ($creditnotesAsInvoices && $creditColl->getSize() > 0)) {
+                foreach ($invoiceColl as $invoice) {
+                    if (!$invoice->isCanceled()) {
+                        $ret ['invoice_number'] [] = $invoice->getIncrementId();
+                        $invoiceDate = date('d.m.Y', strtotime($invoice->getCreatedAt()));
+                        if ($ret ['invoice_date'] == null || strtotime($ret ['invoice_date']) < strtotime($invoiceDate)) {
+                            $ret ['invoice_date'] = $invoiceDate;
+                        }
+                        $invAmount = $invAmount + $invoice->getGrandTotal();
+                    }
+                }
+                if (!$creditnotesAsInvoices && $considerCreditnotes) {
+                    foreach ($creditColl as $credit) {
+                        $invAmount = $invAmount - $credit->getGrandTotal();
+                    }
+                }
+                if ($creditnotesAsInvoices) {
+                    foreach ($creditColl as $credit) {
+                        $ret ['invoice_number'] [] = $credit->getIncrementId();
+                        $invoiceDate = date('d.m.Y', strtotime($credit->getCreatedAt()));
+                        if ($ret ['invoice_date'] == null || strtotime($ret ['invoice_date']) < strtotime($invoiceDate)) {
+                            $ret ['invoice_date'] = $invoiceDate;
+                        }
+                        $invAmount = $invAmount + $credit->getGrandTotal();
+                    }
                 }
             }
         }
+        if ($useInvoiceAmount && $invAmount > 0)
+            $ret ['amount'] = $invAmount;
 
         $shippingAddress = $order->getShippingAddress();
         if ($shippingAddress) {
@@ -239,9 +333,17 @@ class Komfortkasse_Order
             }
         }
 
-        $ret ['store_id'] = $order->getStoreId();
+        $m2e = Mage::getModel('M2ePro/Order');
+        if ($m2e && $m2e->load($order->getEntityId(), 'magento_order_id')) {
+            $ebay = Mage::getModel('M2ePro/Ebay_Order');
+            if ($ebay->load($m2e->getId(), 'order_id')) {
+                $ret ['marketplace_number'] = $ebay->getEbayOrderId();
+                $ret ['customer_number'] = $ebay->getBuyerUserId();
+            }
+        }
 
-        if ($order_extension && method_exists('Komfortkasse_Order_Extension', 'extendOrder') === true) {
+        global $komfortkasse_order_extension;
+        if ($komfortkasse_order_extension && method_exists('Komfortkasse_Order_Extension', 'extendOrder') === true) {
             $ret = Komfortkasse_Order_Extension::extendOrder($order, $ret);
         }
 
@@ -427,33 +529,71 @@ class Komfortkasse_Order
     }
 
 
-    public static function getInvoicePdf($invoiceNumber)
+    public static function getInvoicePdf($invoiceNumber, $orderNumber)
     {
-        if ($invoiceNumber && $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceNumber)) {
+        if ($invoiceNumber) {
+
+            $invoice = Mage::getModel('sales/order_invoice')->loadByIncrementId($invoiceNumber);
             $fileName = $invoiceNumber . '.pdf';
 
-            $pdfGenerated = false;
+            if ($invoice && (!$orderNumber || $invoice->getOrderIncrementId() == $orderNumber)) {
 
-            // try easy pdf (www.easypdfinvoice.com)
-            if (!$pdfGenerated) {
-                $pdfProModel = Mage::getModel('pdfpro/order_invoice');
-                if ($pdfProModel !== false) {
-                    $invoiceData = $pdfProModel->initInvoiceData($invoice);
-                    $result = Mage::helper('pdfpro')->initPdf(array ($invoiceData
-                    ));
-                    if ($result ['success']) {
-                        $content = $result ['content'];
-                        $pdfGenerated = true;
+                $pdfGenerated = false;
+
+                // try easy pdf (www.easypdfinvoice.com)
+                if (!$pdfGenerated) {
+                    $pdfProModel = Mage::getModel('pdfpro/order_invoice');
+                    if ($pdfProModel !== false) {
+                        $invoiceData = $pdfProModel->initInvoiceData($invoice);
+                        $result = Mage::helper('pdfpro')->initPdf(array ($invoiceData
+                        ));
+                        if ($result ['success']) {
+                            $content = $result ['content'];
+                            $pdfGenerated = true;
+                        }
                     }
                 }
+
+                // try Magento Standard
+                if (!$pdfGenerated) {
+                    $pdf = Mage::getModel('sales/order_pdf_invoice')->getPdf(array ($invoice
+                    ));
+                    $content = $pdf->render();
+                }
+            } else if (Komfortkasse_Config::getConfig(Komfortkasse_Config::creditnotes_as_invoices, self::getOrder($orderNumber))) {
+
+                // try credit note
+                $collection = Mage::getResourceModel('sales/order_creditmemo_collection')->addFieldToFilter('increment_id', $invoiceNumber);
+                $credit = $collection->count() == 1 ? $collection->getFirstItem() : null;
+
+                if ($credit && (!$orderNumber || $credit->getOrder()->getIncrementId() == $orderNumber)) {
+
+                    $pdfGenerated = false;
+
+                    // try easy pdf (www.easypdfinvoice.com)
+                    if (!$pdfGenerated) {
+                        $pdfProModel = Mage::getModel('pdfpro/order_creditmemo');
+                        if ($pdfProModel !== false) {
+                            $creditData = $pdfProModel->initCreditmemoData($credit);
+                            $result = Mage::helper('pdfpro')->initPdf(array ($creditData
+                            ));
+                            if ($result ['success']) {
+                                $content = $result ['content'];
+                                // $pdfGenerated = true;
+                            }
+                        }
+                    }
+
+                    // try Magento Standard
+                    if (!$pdfGenerated) {
+                        $pdf = Mage::getModel('sales/order_pdf_creditmemo')->getPdf(array ($credit
+                        ));
+                        $content = $pdf->render();
+                    }
+                }
+
             }
 
-            // try Magento Standard
-            if (!$pdfGenerated) {
-                $pdf = Mage::getModel('sales/order_pdf_invoice')->getPdf(array ($invoice
-                ));
-                $content = $pdf->render();
-            }
 
             return $content;
         }

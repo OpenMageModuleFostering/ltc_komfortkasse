@@ -1,9 +1,9 @@
 <?php
 
-/** 
+/**
  * Komfortkasse
  * Config Class
- * @version 1.4.0.1-Magento */
+ * @version 1.4.4.15-Magento */
 class Komfortkasse_Config
 {
     const activate_export = 'payment/komfortkasse/activate_export';
@@ -25,6 +25,10 @@ class Komfortkasse_Config
     const apikey = 'payment/komfortkasse/apikey';
     const publickey = 'payment/komfortkasse/publickey';
     const privatekey = 'payment/komfortkasse/privatekey';
+    const use_invoice_total = 'payment/komfortkasse/use_invoice_total';
+    const consider_creditnotes = 'payment/komfortkasse/consider_creditnotes';
+    const creditnotes_as_invoices = 'payment/komfortkasse/creditnotes_as_invoices';
+    const last_receipt_only = 'payment/komfortkasse/last_receipt_only';
 
 
     /**
@@ -33,7 +37,7 @@ class Komfortkasse_Config
      *
      * @param string $constantKey Constant Key
      * @param string $value Value
-     *       
+     *
      * @return void
      */
     public static function setConfig($constantKey, $value)
@@ -41,58 +45,58 @@ class Komfortkasse_Config
         Mage::getConfig()->saveConfig($constantKey, $value);
         Mage::getConfig()->reinit();
         Mage::app()->reinitStores();
-    
+
     }
 
  // end setConfig()
-    
+
 
     /**
      * Get Config.
      *
      *
      * @param string $constantKey Constant Key
-     *       
+     *
      * @return mixed
      */
     public static function getConfig($constantKey, $order=null)
     {
         $store_id = null;
-        if ($order != null) {
+        if ($order != null && isset($order['store_id'])) {
             $store_id = $order['store_id'];
         } else {
-            // export und update werden in den getId Methoden nochmals extra berücksichtigt.
+            // export und update werden in den getId Methoden nochmals extra berï¿½cksichtigt.
             if ($constantKey == self::activate_export)
                 return true;
             if ($constantKey == self::activate_update)
                 return true;
         }
-        
+
         $value = Mage::getStoreConfig($constantKey, $store_id);
-        
+
         return $value;
-    
+
     }
 
  // end getConfig()
-    
+
 
     /**
      * Get Request Parameter.
      *
      *
      * @param string $key Key
-     *       
+     *
      * @return string
      */
     public static function getRequestParameter($key)
     {
         return urldecode(Mage::app()->getRequest()->getParam($key));
-    
+
     }
 
  // end getRequestParameter()
-    
+
 
     /**
      * Get Magento Version.
@@ -103,6 +107,6 @@ class Komfortkasse_Config
     public static function getVersion()
     {
         return Mage::getVersion();
-    
+
     } // end getVersion()
 }//end class
