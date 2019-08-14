@@ -69,7 +69,6 @@ class Komfortkasse
                 $ids = Komfortkasse_Order::getRefundIDs();
             } else {
                 $ids = Komfortkasse_Order::getOpenIDs();
-
             }
 
             foreach ($ids as $id) {
