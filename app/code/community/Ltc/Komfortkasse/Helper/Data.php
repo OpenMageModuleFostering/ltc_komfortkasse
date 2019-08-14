@@ -2,7 +2,7 @@
 
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
 require_once "{$path}/Helper/Komfortkasse.php";
-/** 
+/**
  * Komfortkasse
  * Magento Plugin - Helper_Data Class
  * @version 1.3.0.6-Magento */
@@ -12,7 +12,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Init.
-     * 
+     *
      * @return void
      */
     public function init()
@@ -24,7 +24,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Test.
-     * 
+     *
      * @return void
      */
     public function test()
@@ -36,7 +36,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Read orders.
-     * 
+     *
      * @return void
      */
     public function readorders()
@@ -48,7 +48,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Read refunds.
-     * 
+     *
      * @return void
      */
     public function readrefunds()
@@ -60,7 +60,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Update orders.
-     * 
+     *
      * @return void
      */
     public function updateorders()
@@ -72,7 +72,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Update refunds.
-     * 
+     *
      * @return void
      */
     public function updaterefunds()
@@ -84,7 +84,7 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Info.
-     * 
+     *
      * @return void
      */
     public function info()
@@ -92,10 +92,10 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
         Komfortkasse::info();
 
     }//end info()
-    
+
     /**
      * Notify order.
-     * 
+     *
      * @return void
      */
     public function notifyorder($id)
@@ -103,13 +103,13 @@ class Ltc_Komfortkasse_Helper_Data extends Mage_Core_Helper_Abstract
         Komfortkasse::notifyorder($id);
 
     }//end notifyorder()
-    
-    
+
+
     public function readinvoicepdf() {
         return Komfortkasse::readinvoicepdf();
     }
-    
-    
+
+
 
 
 }//end class

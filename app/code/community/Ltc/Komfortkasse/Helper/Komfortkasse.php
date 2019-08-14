@@ -8,7 +8,7 @@ require_once 'Komfortkasse_Order.php';
  */
 class Komfortkasse
 {
-    const PLUGIN_VER = '1.4.3.1';
+    const PLUGIN_VER = '1.4.4.2';
     const MAXLEN_SSL = 117;
     const LEN_MCRYPT = 16;
 
@@ -85,7 +85,8 @@ class Komfortkasse
                     $order = Komfortkasse_Order::getRefund($id);
                 } else {
                     $order = Komfortkasse_Order::getOrder($id);
-                    $order['type'] = self::getOrderType($order['payment_method']);
+                    if ($order['payment_method'])
+                        $order['type'] = self::getOrderType($order['payment_method']);
                 }
 
                 if (!$order) {
@@ -353,6 +354,25 @@ class Komfortkasse
 
  // end update()
 
+    private static function isOpen($order)
+    {
+        $status = '';
+        switch ($order ['type']) {
+            case 'PREPAYMENT' :
+                $status = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open, $order);
+                break;
+            case 'INVOICE' :
+                $status = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_invoice, $order);
+                break;
+            case 'COD' :
+                $status = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_cod, $order);
+                break;
+            default:
+                return false;
+        }
+
+        return in_array($order['status'], explode(',', $status));
+    }
 
     /**
      * Notify order.
@@ -367,14 +387,13 @@ class Komfortkasse
             return;
         }
 
-        // See if order is relevant.
-        $openids = Komfortkasse_Order::getOpenIDs();
-        if (in_array($id, $openids) === false) {
-            return;
-        }
-
         $order = Komfortkasse_Order::getOrder($id);
         $order['type'] = self::getOrderType($order['payment_method']);
+
+        // See if order is relevant.
+        if (!self::isOpen($order)) {
+            return;
+        }
 
         $queryRaw = http_build_query($order);
 
@@ -439,14 +458,13 @@ class Komfortkasse
 
         switch ($orderType) {
             case 'PREPAYMENT' :
-        switch ($status) {
-            case 'PAID' :
-                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_paid, $order);
-            case 'CANCELLED' :
-                return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_cancelled, $order);
-        }
-
-        return null;
+                switch ($status) {
+                    case 'PAID' :
+                        return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_paid, $order);
+                    case 'CANCELLED' :
+                        return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_cancelled, $order);
+                }
+                return null;
             case 'INVOICE' :
                 switch ($status) {
                     case 'PAID' :
@@ -461,9 +479,10 @@ class Komfortkasse
                         return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_paid_cod);
                     case 'CANCELLED' :
                         return Komfortkasse_Config::getConfig(Komfortkasse_Config::status_cancelled_cod);
-    }
+                }
                 return null;
         }
+
     }
 
  // end getNewStatus()

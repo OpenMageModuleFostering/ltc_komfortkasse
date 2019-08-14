@@ -8,7 +8,7 @@
  * status: data type according to the shop system
  * delivery_ and billing_: _firstname, _lastname, _company, _street, _postcode, _city, _countrycode
  * products: an Array of item numbers
- * @version 1.4.3.1-Magento1
+ * @version 1.4.4.7-Magento1
  */
 $path = Mage::getModuleDir('', 'Ltc_Komfortkasse');
 $order_extension = false;
@@ -19,6 +19,19 @@ if (file_exists("{$path}/Helper/Komfortkasse_Order_Extension.php") === true) {
 class Komfortkasse_Order
 {
 
+    private static function createInClause($arr)
+    {
+        if (!is_array($arr)) {
+            $arr = explode(',', $arr);
+        }
+        $tmp = array ();
+        foreach ($arr as $item) {
+            $tmp [] = str_replace('\'', '', $item);
+        }
+        return '(\'' . implode('\', \'', $tmp) . '\')';
+
+    }
+
     /**
      * Get open order IDs.
      *
@@ -28,131 +41,66 @@ class Komfortkasse_Order
     {
         $ret = array ();
 
+        $resource = Mage::getSingleton('core/resource');
+        $readConnection = $resource->getConnection('core_read');
+        $tableOrder = $resource->getTableName('sales/order');
+        $tablePayment = $resource->getTableName('sales/order_payment');
+
+        $minDate = date('Y-m-d', time()-31536000); // 1 Jahr
+
         foreach (Mage::app()->getWebsites() as $website) {
             foreach ($website->getGroups() as $group) {
                 $stores = $group->getStores();
                 foreach ($stores as $store) {
-
                     $store_id = $store->getId();
                     $store_id_order = array ();
                     $store_id_order ['store_id'] = $store_id;
 
-                    if (!Komfortkasse_Config::getConfig(Komfortkasse_Config::activate_export, $store_id_order)) {
-                        continue;
-                    }
+                    if (Komfortkasse_Config::getConfig(Komfortkasse_Config::activate_export, $store_id_order)) {
 
-                    // PREPAYMENT
+                        $query = 'SELECT o.increment_id FROM ' . $tableOrder . ' o join ' . $tablePayment . ' p on p.parent_id = o.entity_id where o.store_id=' . $store_id . ' and created_at > ' . $minDate . ' and (';
+                        $first = true;
 
-                    $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open, $store_id_order);
-                    $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods, $store_id_order);
-
-                    if (!empty($openOrders) && !empty($paymentMethods)) {
-                        $openOrders = explode(',', $openOrders);
-                        $paymentMethods = explode(',', $paymentMethods);
-
-                        $salesModel = Mage::getModel('sales/order');
-                        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array ('in' => $openOrders
-                        ))->addFieldToFilter('store_id', $store_id);
-
-                        foreach ($salesCollection as $order) {
-                            try {
-                                try {
-                                    $method = $order->getPayment()->getMethodInstance()->getCode();
-                                } catch (Exception $e) {
-                                    // payment method has been deleted
-                                    $method = null;
-                                }
-                                if ($method && in_array($method, $paymentMethods, true) === true) {
-                                    $orderId = $order->getIncrementId();
-                                    $ret [] = $orderId;
-                                }
-                            } catch ( Exception $e ) {
-                            }
+                        // PREPAYMENT
+                        $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open, $store_id_order);
+                        $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods, $store_id_order);
+                        if ($openOrders && $paymentMethods) {
+                            if (!$first)
+                                $query .= ' or ';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $first = false;
                         }
 
-                        // Add all orders with unpaid invoices (in case the invoice is created before shipping).
-                        $invoiceModel = Mage::getModel('sales/order_invoice');
-                        $invoiceCollection = $invoiceModel->getCollection()->addAttributeToFilter('state', Mage_Sales_Model_Order_Invoice::STATE_OPEN)->addFieldToFilter('store_id', $store_id);
-                        foreach ($invoiceCollection as $invoice) {
-                            try {
-                                $order = $invoice->getOrder();
-                                try {
-                                    $method = $order->getPayment()->getMethodInstance()->getCode();
-                                } catch (Exception $e) {
-                                    // payment method has been deleted
-                                    $method = null;
-                                }
-                                if ($method && in_array($method, $paymentMethods, true) === true) {
-                                    $orderId = $order->getIncrementId();
-                                    if (in_array($orderId, $ret) === false) {
-                                        $ret [] = $orderId;
-                                    }
-                                }
-                            } catch ( Exception $e ) {
-                            }
+                        // COD
+                        $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_cod, $store_id_order);
+                        $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_cod, $store_id_order);
+                        if ($openOrders && $paymentMethods) {
+                            if (!$first)
+                                $query .= ' or ';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $first = false;
                         }
-                    }
 
-                    // INVOICE
-
-                    $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_invoice, $store_id_order);
-                    $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_invoice, $store_id_order);
-
-                    if (!empty($openOrders) && !empty($paymentMethods)) {
-                        $openOrders = explode(',', $openOrders);
-                        $paymentMethods = explode(',', $paymentMethods);
-
-                        $salesModel = Mage::getModel('sales/order');
-                        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array ('in' => $openOrders
-                        ))->addFieldToFilter('store_id', $store_id);
-
-                        foreach ($salesCollection as $order) {
-                            try {
-                                try {
-                                    $method = $order->getPayment()->getMethodInstance()->getCode();
-                                } catch (Exception $e) {
-                                    // payment method has been deleted
-                                    $method = null;
-                                }
-                                if ($method && in_array($method, $paymentMethods, true) === true) {
-                                    $orderId = $order->getIncrementId();
-                                    $ret [] = $orderId;
-                                }
-                            } catch ( Exception $e ) {
-                            }
+                        // INVOICE
+                        $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_invoice, $store_id_order);
+                        $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_invoice, $store_id_order);
+                        if ($openOrders && $paymentMethods) {
+                            if (!$first)
+                                $query .= ' or ';
+                            $query .= '(o.status in ' . self::createInClause($openOrders) . ' and p.method in ' . self::createInClause($paymentMethods) . ')';
+                            $first = false;
                         }
-                    }
 
-                    // COD
+                        $query .= ')';
 
-                    $openOrders = Komfortkasse_Config::getConfig(Komfortkasse_Config::status_open_cod, $store_id_order);
-                    $paymentMethods = Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_cod, $store_id_order);
-
-                    if (!empty($openOrders) && !empty($paymentMethods)) {
-                        $openOrders = explode(',', $openOrders);
-                        $paymentMethods = explode(',', $paymentMethods);
-
-                        $salesModel = Mage::getModel('sales/order');
-                        $salesCollection = $salesModel->getCollection()->addAttributeToFilter('status', array ('in' => $openOrders
-                        ))->addFieldToFilter('store_id', $store_id);
-
-                        foreach ($salesCollection as $order) {
-                            try {
-                                $method = $order->getPayment()->getMethodInstance()->getCode();
-                            } catch (Exception $e) {
-                                // payment method has been deleted
-                                $method = null;
-                            }
-                            if ($method && in_array($method, $paymentMethods, true) === true) {
-                                $orderId = $order->getIncrementId();
-                                $ret [] = $orderId;
-                            }
+                        $results = $readConnection->fetchAll($query);
+                        foreach ($results as $result) {
+                            $ret[] = $result['increment_id'];
                         }
                     }
                 }
             }
         }
-
 
         return $ret;
 
@@ -184,6 +132,7 @@ class Komfortkasse_Order
                     }
 
                     $paymentMethods = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods, $store_id_order));
+                    $paymentMethodsInvoice = explode(',', Komfortkasse_Config::getConfig(Komfortkasse_Config::payment_methods_invoice, $store_id_order));
 
                     $cmModel = Mage::getModel("sales/order_creditmemo");
                     $cmCollection = $cmModel->getCollection()->addFieldToFilter('store_id', $store_id);
@@ -191,13 +140,13 @@ class Komfortkasse_Order
                     foreach ($cmCollection as $creditMemo) {
                         if ($creditMemo->getTransactionId() == null) {
                             $order = $creditMemo->getOrder();
-                        try {
-                            $method = $order->getPayment()->getMethodInstance()->getCode();
-                        } catch (Exception $e) {
-                            // payment method has been deleted
-                            $method = null;
-                        }
-                        if ($method && in_array($method, $paymentMethods, true) === true) {
+                            try {
+                                $method = $order->getPayment()->getMethodInstance()->getCode();
+                            } catch ( Exception $e ) {
+                                // payment method has been deleted
+                                $method = null;
+                            }
+                            if ($method && (in_array($method, $paymentMethods, true) === true || in_array($method, $paymentMethodsInvoice, true) === true)) {
                                 $cmId = $creditMemo->getIncrementId();
                                 $ret [] = $cmId;
                             }
@@ -238,7 +187,8 @@ class Komfortkasse_Order
         $ret ['customer_number'] = $order->getCustomerId();
         try {
             $ret ['payment_method'] = $order->getPayment()->getMethodInstance()->getCode();
-        } catch (Exception $e) { }
+        } catch ( Exception $e ) {
+        }
         $ret ['amount'] = $order->getGrandTotal();
         $ret ['currency_code'] = $order->getOrderCurrencyCode();
         $ret ['exchange_rate'] = $order->getBaseToOrderRate();
@@ -249,8 +199,8 @@ class Komfortkasse_Order
             foreach ($order->getInvoiceCollection() as $invoice) {
                 $ret ['invoice_number'] [] = $invoice->getIncrementId();
                 $invoiceDate = date('d.m.Y', strtotime($invoice->getCreatedAt()));
-                if ($ret['invoice_date'] == null || strtotime($ret['invoice_date']) < strtotime($invoiceDate)) {
-                    $ret['invoice_date'] = $invoiceDate;
+                if ($ret ['invoice_date'] == null || strtotime($ret ['invoice_date']) < strtotime($invoiceDate)) {
+                    $ret ['invoice_date'] = $invoiceDate;
                 }
             }
         }
@@ -351,6 +301,7 @@ class Komfortkasse_Order
         // Hint: PAID and CANCELLED are supported as of now.
         $order = Mage::getModel('sales/order')->loadByIncrementId($order ['number']);
 
+        Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' START', null, 'komfortkasse.log');
         Mage::dispatchEvent('komfortkasse_change_order_status_before', array ('order' => $order,'status' => $status,'callbackid' => $callbackid
         ));
 
@@ -365,40 +316,54 @@ class Komfortkasse_Order
             $invoiceColl = $order->getInvoiceCollection();
             if ($invoiceColl->getSize() > 0) {
                 foreach ($order->getInvoiceCollection() as $invoice) {
+                    Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' invoice ' . $invoice->getIncrementId() . ' pay', null, 'komfortkasse.log');
                     $invoice->pay();
+                    Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' invoice ' . $invoice->getIncrementId() . ' addComment ' . $callbackid, null, 'komfortkasse.log');
                     $invoice->addComment($callbackid, false, false);
                     self::mysave($invoice);
                 }
             } else {
                 $payment = $order->getPayment();
+                Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' payment capture', null, 'komfortkasse.log');
                 $payment->capture(null);
 
                 if ($callbackid) {
                     $payment->setTransactionId($callbackid);
+                    Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' addTransaction', null, 'komfortkasse.log');
                     $transaction = $payment->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE);
                 }
             }
+            $order->save();
+            $order = Mage::getModel('sales/order')->loadByIncrementId($order->getIncrementId());
 
+            Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' add status history ' . $status . ' / ' . $callbackid, null, 'komfortkasse.log');
             $history = $order->addStatusHistoryComment('' . $callbackid, $status);
+            $order->setStatus($status);
             $order->save();
         } else if ($state == 'canceled') {
 
             if ($callbackid) {
+                Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' add status history ' . $status . ' / ' . $callbackid, null, 'komfortkasse.log');
                 $history = $order->addStatusHistoryComment('' . $callbackid, $status);
             }
             if ($order->canCancel()) {
+                Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' cancel', null, 'komfortkasse.log');
                 $order->cancel();
             }
+            Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' set status ' . $status, null, 'komfortkasse.log');
             $order->setStatus($status);
             $order->save();
         } else {
 
+            Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' add status history ' . $status . ' / ' . $callbackid, null, 'komfortkasse.log');
             $history = $order->addStatusHistoryComment('' . $callbackid, $status);
             $order->save();
         }
 
         Mage::dispatchEvent('komfortkasse_change_order_status_after', array ('order' => $order,'status' => $status,'callbackid' => $callbackid
         ));
+
+        Mage::log('Komfortkasse: update order ' . $order->getIncrementId() . ' END. Status: ' . $order->getStatus, null, 'komfortkasse.log');
 
     }
 

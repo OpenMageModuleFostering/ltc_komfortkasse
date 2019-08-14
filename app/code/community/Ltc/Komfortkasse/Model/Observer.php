@@ -2,13 +2,21 @@
 
 /**
  * Komfortkasse
- * Magento2 Plugin - Observer Class
+ * Magento Plugin - Observer Class
  *
- * @version 1.4.0.1-Magento2 */
+ * @version 1.2.1.8-Magento */
 class Ltc_Komfortkasse_Model_Observer
 {
 
-    private function getRegName(\Magento\Framework\Event\Observer $observer)
+
+    /**
+     * getRegName
+     * 
+     * @param Varien_Event_Observer $observer Observer
+     * 
+     * @return string
+     */
+    private function getRegName(Varien_Event_Observer $observer)
     {
         $id = $observer->getOrder()->getIncrementId();
         if ($id) {
@@ -19,7 +27,14 @@ class Ltc_Komfortkasse_Model_Observer
     }//end getRegName()
 
 
-    public function noteNewOrder(\Magento\Framework\Event\Observer $observer)
+    /**
+     * noteNewOrder
+     * 
+     * @param Varien_Event_Observer $observer Observer
+     * 
+     * @return void
+     */
+    public function noteNewOrder(Varien_Event_Observer $observer)
     {
         $regName = self::getRegName($observer);
         if ($regName) {
@@ -29,8 +44,14 @@ class Ltc_Komfortkasse_Model_Observer
     }//end noteNewOrder()
 
 
-
-    public function noteOrderStatus(\Magento\Framework\Event\Observer $observer)
+    /**
+     * noteOrderStatus
+     * 
+     * @param Varien_Event_Observer $observer Observer
+     * 
+     * @return void
+     */
+    public function noteOrderStatus(Varien_Event_Observer $observer)
     {
         $regName = self::getRegName($observer);
         if ($regName && !Mage::registry($regName)) {
@@ -40,7 +61,14 @@ class Ltc_Komfortkasse_Model_Observer
     }//end noteOrderStatus()
 
 
-    public function checkOrderStatus(\Magento\Framework\Event\Observer $observer)
+    /**
+     * checkOrderStatus
+     * 
+     * @param Varien_Event_Observer $observer Observer
+     * 
+     * @return void
+     */
+    public function checkOrderStatus(Varien_Event_Observer $observer)
     {
         $regName     = self::getRegName($observer);
         $orderStatus = Mage::registry($regName);
